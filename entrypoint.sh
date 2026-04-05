@@ -10,12 +10,48 @@ is_true() {
 
 cd "${GITHUB_WORKSPACE:?GITHUB_WORKSPACE is not set}"
 
+# Container actions often run as root on a workspace owned by the runner user; Git 2.35+ requires this.
+git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
 # Inputs (kebab-case in action.yml -> INPUT_* with underscores, uppercase)
 INPUT_GITHUB_ACTIONS_LINT="${INPUT_GITHUB_ACTIONS_LINT:-true}"
 INPUT_COMMITLINT="${INPUT_COMMITLINT:-true}"
 INPUT_RENOVATE_CHECK="${INPUT_RENOVATE_CHECK:-true}"
 
 failed=0
+
+# For push events, .before may be missing from the clone after a force-push (orphaned on the server).
+# Fall back to the parent of the oldest commit in the payload, then to after^.
+resolve_push_from() {
+  [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "$GITHUB_EVENT_PATH" ] || return 1
+  [ "${GITHUB_EVENT_NAME:-}" = "push" ] || return 1
+  local before after oldest parent
+  before=$(jq -r '.before // empty' "$GITHUB_EVENT_PATH")
+  after=$(jq -r '.after // empty' "$GITHUB_EVENT_PATH")
+  if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+    return 1
+  fi
+  if git cat-file -e "${before}^{commit}" 2>/dev/null; then
+    printf '%s' "$before"
+    return 0
+  fi
+  oldest=$(jq -r '.commits[0].id // empty' "$GITHUB_EVENT_PATH")
+  if [ -n "$oldest" ] && git cat-file -e "${oldest}^{commit}" 2>/dev/null; then
+    parent=$(git rev-parse "${oldest}^" 2>/dev/null)
+    if [ -n "$parent" ]; then
+      printf '%s' "$parent"
+      return 0
+    fi
+  fi
+  if git cat-file -e "${after}^{commit}" 2>/dev/null; then
+    parent=$(git rev-parse "${after}^" 2>/dev/null)
+    if [ -n "$parent" ]; then
+      printf '%s' "$parent"
+      return 0
+    fi
+  fi
+  return 1
+}
 
 get_changed_files() {
   if [ -z "${GITHUB_EVENT_PATH:-}" ] || [ ! -f "$GITHUB_EVENT_PATH" ]; then
@@ -34,11 +70,10 @@ get_changed_files() {
   fi
 
   if [ "${GITHUB_EVENT_NAME:-}" = "push" ]; then
-    local before after
-    before=$(jq -r '.before // empty' "$GITHUB_EVENT_PATH")
+    local after from
     after=$(jq -r '.after // empty' "$GITHUB_EVENT_PATH")
-    if [ -n "$before" ] && [ "$before" != "0000000000000000000000000000000000000000" ]; then
-      git diff --name-only "$before" "$after"
+    if [ -n "$after" ] && from=$(resolve_push_from); then
+      git diff --name-only "$from" "$after"
       return
     fi
   fi
@@ -121,10 +156,9 @@ if is_true "$INPUT_COMMITLINT"; then
       git fetch -q origin "$to" 2>/dev/null || true
       commitlint --from "$from" --to "$to" || failed=1
     elif [ "${GITHUB_EVENT_NAME:-}" = "push" ]; then
-      before=$(jq -r '.before // empty' "$GITHUB_EVENT_PATH")
       after=$(jq -r '.after // empty' "$GITHUB_EVENT_PATH")
-      if [ -n "$before" ] && [ "$before" != "0000000000000000000000000000000000000000" ]; then
-        commitlint --from "$before" --to "$after" || failed=1
+      if [ -n "$after" ] && from=$(resolve_push_from); then
+        commitlint --from "$from" --to "$after" || failed=1
       else
         commitlint_default_range || failed=1
       fi
