@@ -1,6 +1,9 @@
 # tagpr merges its release PR → creates git tag + Draft GitHub Release (see .tagpr: release = draft).
 # The follow-up job then pushes the image to GHCR, pins action.yml to the digest, moves the tag to
 # that commit, and publishes the draft release.
+#
+# Git pushes (tag + default branch) use an SSH deploy key: set repository secret DEPLOY_KEY to the
+# private key. Branch rules should allow the deploy key identity to bypass push restrictions.
 
 name: tagpr
 
@@ -38,6 +41,8 @@ jobs:
     if: ${{ needs.tagpr.outputs.tag != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment:
+      name: release
     permissions:
       contents: write
       packages: write
@@ -71,11 +76,21 @@ jobs:
           TAG: ${{ needs.tagpr.outputs.tag }}
           DIGEST: ${{ steps.build.outputs.digest }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
         run: |
           set -euo pipefail
           [ -n "${DIGEST}" ]
+          if [ -z "${DEPLOY_KEY:-}" ]; then
+            echo "::error::Set repository secret DEPLOY_KEY to the SSH private key for a deploy key with write access."
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          export GIT_SSH_COMMAND='ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes'
           draft="$(gh release view "$TAG" --json isDraft --jq '.isDraft')"
           if [ "$draft" != "true" ]; then
             echo "::error::Expected a draft GitHub Release for tag ${TAG} (created by tagpr)."
@@ -90,7 +105,7 @@ jobs:
             exit 1
           fi
           git commit -m "chore: pin container image to GHCR digest (${TAG}) [skip ci]"
-          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git remote set-url origin "git@github.com:${GITHUB_REPOSITORY}.git"
           git push origin "${TAG}" --force
           if git push origin "HEAD:${DEFAULT_BRANCH}"; then
             echo "Pushed digest commit to ${DEFAULT_BRANCH}."
