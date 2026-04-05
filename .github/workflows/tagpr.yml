@@ -106,7 +106,9 @@ jobs:
           fi
           git commit -m "chore: pin container image to GHCR digest (${TAG}) [skip ci]"
           git remote set-url origin "git@github.com:${GITHUB_REPOSITORY}.git"
-          git push origin "${TAG}" --force
+          # Detached HEAD has the digest commit; local refs/tags/<TAG> still points at the pre-commit
+          # tag target, so `git push origin <TAG>` would not move the remote tag. Push HEAD explicitly.
+          git push origin "HEAD:refs/tags/${TAG}" --force
           if git push origin "HEAD:${DEFAULT_BRANCH}"; then
             echo "Pushed digest commit to ${DEFAULT_BRANCH}."
           else
