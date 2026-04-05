@@ -1,0 +1,100 @@
+# tagpr merges its release PR → creates git tag + Draft GitHub Release (see .tagpr: release = draft).
+# The follow-up job then pushes the image to GHCR, pins action.yml to the digest, moves the tag to
+# that commit, and publishes the draft release.
+
+name: tagpr
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: tagpr-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  tagpr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      issues: read
+      pull-requests: write
+    outputs:
+      tag: ${{ steps.tagpr.outputs.tag }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - id: tagpr
+        uses: Songmu/tagpr@e7ae290f5cc5faabfdb4d131f8e4ce073ad8b3e2 # v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  ghcr-digest-and-publish:
+    needs: tagpr
+    if: ${{ needs.tagpr.outputs.tag != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: refs/tags/${{ needs.tagpr.outputs.tag }}
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image (release tag only; no latest)
+        id: build
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/daaa1k/common-lint:${{ needs.tagpr.outputs.tag }}
+
+      - name: Commit digest-pinned action.yml, move tag, publish release
+        env:
+          TAG: ${{ needs.tagpr.outputs.tag }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          [ -n "${DIGEST}" ]
+          draft="$(gh release view "$TAG" --json isDraft --jq '.isDraft')"
+          if [ "$draft" != "true" ]; then
+            echo "::error::Expected a draft GitHub Release for tag ${TAG} (created by tagpr)."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          sed -i -E 's|^[[:space:]]*image:[[:space:]].*|  image: docker://ghcr.io/daaa1k/common-lint@'"${DIGEST}"'|' action.yml
+          git add action.yml
+          if git diff --staged --quiet; then
+            echo "::error::action.yml did not change after digest substitution (unexpected)."
+            exit 1
+          fi
+          git commit -m "chore: pin container image to GHCR digest (${TAG}) [skip ci]"
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push origin "${TAG}" --force
+          if git push origin "HEAD:${DEFAULT_BRANCH}"; then
+            echo "Pushed digest commit to ${DEFAULT_BRANCH}."
+          else
+            echo "::warning::Could not fast-forward ${DEFAULT_BRANCH}; tag ${TAG} was updated. Merge or cherry-pick the digest commit manually if needed."
+          fi
+          gh release edit "${TAG}" --draft=false
