@@ -4,20 +4,11 @@ A container GitHub Action that runs static checks for GitHub Actions workflows, 
 
 ## Usage in other repositories
 
-### 1. Add a workflow
+Create a workflow file under `.github/workflows/` (for example `.github/workflows/lint.yml`).
 
-Create a workflow file under `.github/workflows/` (for example `.github/workflows/ci.yml`).
-
-### 2. Check out the full history
-
-`commitlint` and change detection rely on Git history. Use `actions/checkout` with `fetch-depth: 0`.
-
-### 3. Call this action
-
-Reference the repository that hosts this action (replace `OWNER` and `REPO`, and pin a tag or commit SHA).
 
 ```yaml
-name: Lint
+name: Common Lint
 
 on:
   pull_request:
@@ -31,17 +22,17 @@ permissions:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
-      - uses: OWNER/REPO@v1
+      - uses: daaa1k/common-lint@36aff918b71de7babeae1d94e0f59824a8b42410 # v1.0.0
         env:
           GITHUB_TOKEN: ${{ github.token }}
 ```
-
-Pin the version to a **release tag** or **commit SHA** (for example `OWNER/REPO@abc1234` or `OWNER/REPO@v1.2.3`) instead of a moving branch name.
 
 ### Optional inputs
 
@@ -54,7 +45,7 @@ Pin the version to a **release tag** or **commit SHA** (for example `OWNER/REPO@
 Example with one feature disabled:
 
 ```yaml
-      - uses: OWNER/REPO@v1
+      - uses: daaa1k/common-lint@36aff918b71de7babeae1d94e0f59824a8b42410 # v1.0.0
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
