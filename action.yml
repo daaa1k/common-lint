@@ -1,0 +1,24 @@
+name: Common lint
+description: Static analysis for GitHub Actions workflows, commit messages, and Renovate config.
+
+branding:
+  icon: check-circle
+  color: green
+
+inputs:
+  github-actions-lint:
+    description: Run actionlint, ghalint, and zizmor.
+    required: false
+    default: "true"
+  commitlint:
+    description: Run commitlint on commits in the current event range.
+    required: false
+    default: "true"
+  renovate-check:
+    description: Run renovate-config-validator on renovate config files.
+    required: false
+    default: "true"
+
+runs:
+  using: docker
+  image: Dockerfile

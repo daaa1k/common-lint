@@ -1,3 +1,49 @@
 {
-  "extends": ["github>daaa1k/renovate-config"]
+  "extends": ["github>daaa1k/renovate-config"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "actionlint GitHub release tag pinned in Dockerfile",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": [
+        "ARG\\s+ACTIONLINT_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "rhysd/actionlint",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "ghalint GitHub release tag pinned in Dockerfile",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": [
+        "ARG\\s+GHALINT_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "suzuki-shunsuke/ghalint",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "zizmor GitHub release tag pinned in Dockerfile",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": [
+        "ARG\\s+ZIZMOR_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "zizmorcore/zizmor",
+      "versioningTemplate": "semver"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Container action npm deps (Dockerfile COPY npm-deps/) - group commitlint packages",
+      "matchFileNames": ["npm-deps/package.json"],
+      "matchPackageNames": [
+        "@commitlint/cli",
+        "@commitlint/config-conventional"
+      ],
+      "groupName": "action commitlint"
+    }
+  ]
 }
