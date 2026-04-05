@@ -52,9 +52,12 @@ WORKDIR /opt/npm-deps
 RUN npm ci --omit=dev \
   && npm cache clean --force
 
+COPY merge-commitlint-config.mjs /opt/npm-deps/
+
 ENV PATH="/opt/npm-deps/node_modules/.bin:/usr/local/bin:${PATH}"
 ENV NODE_PATH="/opt/npm-deps/node_modules"
 
+COPY commitlint.config.cjs /opt/common-lint/
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

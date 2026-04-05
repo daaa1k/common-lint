@@ -122,11 +122,15 @@ should_run_renovate_check() {
   return 1
 }
 
+commitlint_config_path() {
+  node /opt/npm-deps/merge-commitlint-config.mjs
+}
+
 commitlint_default_range() {
   if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
-    commitlint --from HEAD~1 --to HEAD
+    commitlint --config "$COMMITLINT_CONFIG" --from HEAD~1 --to HEAD
   else
-    commitlint --from HEAD --to HEAD
+    commitlint --config "$COMMITLINT_CONFIG" --from HEAD --to HEAD
   fi
 }
 
@@ -148,17 +152,18 @@ fi
 
 if is_true "$INPUT_COMMITLINT"; then
   echo "::group::commitlint"
+  COMMITLINT_CONFIG=$(commitlint_config_path)
   if [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "$GITHUB_EVENT_PATH" ]; then
     if [ "${GITHUB_EVENT_NAME:-}" = "pull_request" ]; then
       from=$(jq -r '.pull_request.base.sha' "$GITHUB_EVENT_PATH")
       to=$(jq -r '.pull_request.head.sha' "$GITHUB_EVENT_PATH")
       git fetch -q origin "$from" 2>/dev/null || true
       git fetch -q origin "$to" 2>/dev/null || true
-      commitlint --from "$from" --to "$to" || failed=1
+      commitlint --config "$COMMITLINT_CONFIG" --from "$from" --to "$to" || failed=1
     elif [ "${GITHUB_EVENT_NAME:-}" = "push" ]; then
       after=$(jq -r '.after // empty' "$GITHUB_EVENT_PATH")
       if [ -n "$after" ] && from=$(resolve_push_from); then
-        commitlint --from "$from" --to "$after" || failed=1
+        commitlint --config "$COMMITLINT_CONFIG" --from "$from" --to "$after" || failed=1
       else
         commitlint_default_range || failed=1
       fi
