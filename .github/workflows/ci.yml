@@ -39,9 +39,19 @@ jobs:
         run: npm ci --omit=dev
         working-directory: npm-deps
 
-      - name: Run commitlint and renovate-check (container action)
-        uses: ./
-        with:
-          github-actions-lint: "false"
+      - name: Run commitlint and renovate-check (same entrypoint as the action)
         env:
           GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          docker run --rm \
+            -e GITHUB_TOKEN \
+            -e GITHUB_EVENT_NAME \
+            -e GITHUB_EVENT_PATH \
+            -e GITHUB_WORKSPACE=/github/workspace \
+            -e INPUT_GITHUB_ACTIONS_LINT=false \
+            -e INPUT_COMMITLINT=true \
+            -e INPUT_RENOVATE_CHECK=true \
+            -v "${GITHUB_WORKSPACE}:/github/workspace" \
+            -v "${GITHUB_EVENT_PATH}:${GITHUB_EVENT_PATH}:ro" \
+            -w /github/workspace \
+            common-lint:ci
