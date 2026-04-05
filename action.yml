@@ -21,4 +21,4 @@ inputs:
 
 runs:
   using: docker
-  image: docker://ghcr.io/daaa1k/common-lint@sha256:d75ed6c0a0d43e6baa1376ef803d9e2fcc3039d1ce3c2de25096233733770b05
+  image: docker://ghcr.io/daaa1k/common-lint@sha256:1510495d147cbdc53e24df9e2ae5f7d42c7f8fd499163d84729f8bf2587187c5
