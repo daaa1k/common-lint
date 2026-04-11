@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Reduce ANSI from tools when they respect these (logs still stripped before PR comment).
+export NO_COLOR=1
+export FORCE_COLOR=0
+export CI="${CI:-true}"
+
 MAX_COMMENT_LINES=500
 MAX_COMMENT_CHARS=62000
+MAX_TOTAL_COMMENT_CHARS=64000
 
 is_true() {
   case "${1:-}" in
@@ -24,6 +30,18 @@ INPUT_VULN_SCAN="${INPUT_VULN_SCAN:-true}"
 INPUT_POST_PR_COMMENTS="${INPUT_POST_PR_COMMENTS:-true}"
 
 failed=0
+
+# Per-check status for PR summary: pass | fail | skip
+SEC_GA_STATUS=skip
+SEC_GA_BODY=""
+SEC_CL_STATUS=skip
+SEC_CL_BODY=""
+SEC_RENOVATE_STATUS=skip
+SEC_RENOVATE_BODY=""
+SEC_VULN_STATUS=skip
+SEC_VULN_BODY=""
+# vuln body is markdown (true) or plain log (false)
+SEC_VULN_IS_MD="false"
 
 # For push events, .before may be missing from the clone after a force-push (orphaned on the server).
 # Fall back to the parent of the oldest commit in the payload, then to after^.
@@ -147,13 +165,13 @@ should_post_pr_comment() {
   return 0
 }
 
-build_comment_header() {
-  local scan_title="$1"
-  local short_sha
-  short_sha=$(jq -r '.pull_request.head.sha // empty' "$GITHUB_EVENT_PATH" | cut -c1-7)
-  local run_url="${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID:-unknown}"
-  printf '### common-lint: %s\n\n**Run:** [%s](%s) · **Commit:** `%s`\n\n' \
-    "$scan_title" "${GITHUB_RUN_ID:-unknown}" "$run_url" "$short_sha"
+# Strip ANSI escape sequences (CSI + OSC hyperlink) so GitHub PR comments stay readable.
+strip_ansi() {
+  if [ -z "${1:-}" ]; then
+    printf ''
+    return
+  fi
+  printf '%s' "$1" | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | sed 's/\x1b\][0-9;]*[^\x07]*//g' | tr -d '\r'
 }
 
 truncate_comment_body() {
@@ -185,62 +203,51 @@ truncate_comment_body() {
   fi
 }
 
-post_pr_comment_scan() {
-  local scan_name="$1"
-  local mode="$2"
+table_result_cell() {
+  case "$1" in
+    pass) printf '%s' '✅ **Passed**' ;;
+    fail) printf '%s' '❌ **Failed**' ;;
+    skip) printf '%s' '⊘ **Skipped**' ;;
+    *) printf '%s' '—' ;;
+  esac
+}
+
+status_badge() {
+  case "$1" in
+    pass) printf '%s' '✅ Passed' ;;
+    fail) printf '%s' '❌ Failed' ;;
+    skip) printf '%s' '⊘ Skipped' ;;
+    *) printf '%s' '—' ;;
+  esac
+}
+
+escape_summary_title() {
+  printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
+}
+
+append_detail_block() {
+  local title="$1"
+  local status="$2"
   local body="$3"
+  local is_md="${4:-false}"
+  local esc_title
+  esc_title=$(escape_summary_title "$title")
 
-  if ! should_post_pr_comment; then
-    return 0
-  fi
+  printf '<details>\n<summary><strong>%s</strong> — %s</summary>\n\n' "$esc_title" "$(status_badge "$status")"
 
-  local header
-  header=$(build_comment_header "$scan_name")
-
-  local full
-  if [ "$mode" = "skip" ]; then
-    full="${header}${body}"
-  elif [ "$mode" = "output-md" ]; then
-    local truncated_md
-    truncated_md=$(truncate_comment_body "$body")
-    full="${header}${truncated_md}"
-  else
-    local truncated
-    truncated=$(truncate_comment_body "$body")
-    full="${header}~~~
-${truncated}
-~~~"
-  fi
-
-  if [ "${#full}" -gt 65500 ]; then
-    full="${full:0:65500}"
-    full="${full}"$'\n\n... (truncated: GitHub comment size limit)\n'
-  fi
-
-  local api_url="${GITHUB_API_URL:-https://api.github.com}"
-  local pr_number
-  pr_number=$(jq -r '.pull_request.number' "$GITHUB_EVENT_PATH")
-  local resp_file
-  resp_file=$(mktemp)
-  local http_code
-  set +e
-  http_code=$(
-    curl -sS -w '%{http_code}' -o "$resp_file" -X POST \
-      -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-      -H "Accept: application/vnd.github+json" \
-      -H "X-GitHub-Api-Version: 2022-11-28" \
-      "$api_url/repos/${GITHUB_REPOSITORY}/issues/${pr_number}/comments" \
-      -d "$(jq -n --arg body "$full" '{body: $body}')"
-  )
-  curl_exit=$?
-  set -e
-
-  if [ "$curl_exit" -ne 0 ] || [ "$http_code" != "201" ]; then
-    local err
-    err=$(head -c 400 "$resp_file" 2>/dev/null || true)
-    echo "::warning::Could not post PR comment for ${scan_name} (HTTP ${http_code:-unknown}, curl exit ${curl_exit}). ${err}"
-  fi
-  rm -f "$resp_file"
+  case "$status" in
+    skip)
+      printf '%s\n\n' "$body"
+      ;;
+    *)
+      if is_true "$is_md"; then
+        printf '%s\n\n' "$(truncate_comment_body "$body")"
+      else
+        printf '```text\n%s\n```\n\n' "$(truncate_comment_body "$(strip_ansi "$body")")"
+      fi
+      ;;
+  esac
+  printf '</details>\n\n'
 }
 
 build_trivy_pr_comment_body() {
@@ -273,32 +280,115 @@ build_trivy_pr_comment_body() {
   ' "$json_file"
 }
 
+render_combined_pr_comment() {
+  local overall_emoji overall_word
+  if [ "$failed" -eq 0 ]; then
+    overall_emoji="✅"
+    overall_word="**PASSED**"
+  else
+    overall_emoji="❌"
+    overall_word="**FAILED**"
+  fi
+
+  local short_sha run_url
+  short_sha=$(jq -r '.pull_request.head.sha // empty' "$GITHUB_EVENT_PATH" | cut -c1-7)
+  run_url="${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID:-unknown}"
+
+  printf '%s\n\n' "## common-lint results"
+  printf '%s **Overall:** %s\n\n' "$overall_emoji" "$overall_word"
+  printf '%s **Run:** [%s](%s) · **Commit:** `%s`\n\n' "🔗" "${GITHUB_RUN_ID:-unknown}" "$run_url" "$short_sha"
+  printf '%s\n' "| Check | Result |"
+  printf '%s\n' "| --- | --- |"
+  printf '| GitHub Actions lint (actionlint, ghalint, zizmor) | %s |\n' "$(table_result_cell "$SEC_GA_STATUS")"
+  printf '| commitlint | %s |\n' "$(table_result_cell "$SEC_CL_STATUS")"
+  printf '| renovate-check | %s |\n' "$(table_result_cell "$SEC_RENOVATE_STATUS")"
+  printf '| vuln-scan (Trivy) | %s |\n' "$(table_result_cell "$SEC_VULN_STATUS")"
+  printf '\n---\n\n'
+
+  append_detail_block "1. GitHub Actions lint" "$SEC_GA_STATUS" "$SEC_GA_BODY" false
+  append_detail_block "2. commitlint" "$SEC_CL_STATUS" "$SEC_CL_BODY" false
+  append_detail_block "3. renovate-check" "$SEC_RENOVATE_STATUS" "$SEC_RENOVATE_BODY" false
+  if is_true "$SEC_VULN_IS_MD"; then
+    append_detail_block "4. vuln-scan (Trivy)" "$SEC_VULN_STATUS" "$SEC_VULN_BODY" "true"
+  else
+    append_detail_block "4. vuln-scan (Trivy)" "$SEC_VULN_STATUS" "$SEC_VULN_BODY" "false"
+  fi
+}
+
+post_pr_comment_once() {
+  local full="$1"
+
+  if [ "${#full}" -gt "$MAX_TOTAL_COMMENT_CHARS" ]; then
+    full="${full:0:$MAX_TOTAL_COMMENT_CHARS}"
+    full="${full}"$'\n\n... (truncated: comment size limit)\n'
+  fi
+
+  local api_url="${GITHUB_API_URL:-https://api.github.com}"
+  local pr_number
+  pr_number=$(jq -r '.pull_request.number' "$GITHUB_EVENT_PATH")
+  local resp_file
+  resp_file=$(mktemp)
+  local http_code
+  set +e
+  http_code=$(
+    curl -sS -w '%{http_code}' -o "$resp_file" -X POST \
+      -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+      -H "Accept: application/vnd.github+json" \
+      -H "X-GitHub-Api-Version: 2022-11-28" \
+      "$api_url/repos/${GITHUB_REPOSITORY}/issues/${pr_number}/comments" \
+      -d "$(jq -n --arg body "$full" '{body: $body}')"
+  )
+  curl_exit=$?
+  set -e
+
+  if [ "$curl_exit" -ne 0 ] || [ "$http_code" != "201" ]; then
+    local err
+    err=$(head -c 400 "$resp_file" 2>/dev/null || true)
+    if [ "${http_code:-}" = "403" ]; then
+      echo "::warning::Could not post PR comment (HTTP 403). Add \`pull-requests: write\` under \`permissions:\` in the workflow that runs this action. Fork PRs use a read-only token for security; comments from GITHUB_TOKEN are not possible unless you use a different trigger or credential (see GitHub Actions docs on GITHUB_TOKEN permissions)."
+    else
+      echo "::warning::Could not post PR comment (HTTP ${http_code:-unknown}, curl exit ${curl_exit}). ${err}"
+    fi
+  fi
+  rm -f "$resp_file"
+}
+
 changed_files=$(get_changed_files)
 
 if is_true "$INPUT_GITHUB_ACTIONS_LINT"; then
   if echo "$changed_files" | should_run_github_actions_lint; then
     cap=$(mktemp)
+    ga_failed=0
     echo "::group::github-actions-lint (actionlint, ghalint, zizmor)"
     {
-      actionlint || failed=1
-      ghalint run || failed=1
-      zizmor . || failed=1
+      actionlint || ga_failed=1
+      ghalint run || ga_failed=1
+      zizmor . || ga_failed=1
     } >"$cap" 2>&1
     cat "$cap"
     echo "::endgroup::"
-    post_pr_comment_scan "github-actions-lint" output "$(cat "$cap")"
+    SEC_GA_BODY=$(cat "$cap")
     rm -f "$cap"
+    if [ "$ga_failed" -eq 0 ]; then
+      SEC_GA_STATUS=pass
+    else
+      SEC_GA_STATUS=fail
+      failed=1
+    fi
   else
     echo "Skipping github-actions-lint: no matching files in this change set."
-    post_pr_comment_scan "github-actions-lint" skip "Skipping: no matching files in this change set (e.g. \`.github/workflows/*.yml\` or composite \`action.yml\`)."
+    SEC_GA_STATUS=skip
+    SEC_GA_BODY="No matching files in this change set (e.g. \`.github/workflows/*.yml\` or composite \`action.yml\`)."
   fi
 else
   echo "Skipping github-actions-lint (disabled)."
-  post_pr_comment_scan "github-actions-lint" skip "Skipping: \`github-actions-lint\` is disabled."
+  SEC_GA_STATUS=skip
+  SEC_GA_BODY="Input \`github-actions-lint\` is disabled."
 fi
 
 if is_true "$INPUT_COMMITLINT"; then
   cap=$(mktemp)
+  cl_failed=0
   echo "::group::commitlint"
   COMMITLINT_CONFIG=$(commitlint_config_path)
   {
@@ -308,33 +398,41 @@ if is_true "$INPUT_COMMITLINT"; then
         to=$(jq -r '.pull_request.head.sha' "$GITHUB_EVENT_PATH")
         git fetch -q origin "$from" 2>/dev/null || true
         git fetch -q origin "$to" 2>/dev/null || true
-        commitlint --config "$COMMITLINT_CONFIG" --from "$from" --to "$to" || failed=1
+        commitlint --config "$COMMITLINT_CONFIG" --from "$from" --to "$to" || cl_failed=1
       elif [ "${GITHUB_EVENT_NAME:-}" = "push" ]; then
         after=$(jq -r '.after // empty' "$GITHUB_EVENT_PATH")
         if [ -n "$after" ] && from=$(resolve_push_from); then
-          commitlint --config "$COMMITLINT_CONFIG" --from "$from" --to "$after" || failed=1
+          commitlint --config "$COMMITLINT_CONFIG" --from "$from" --to "$after" || cl_failed=1
         else
-          commitlint_default_range || failed=1
+          commitlint_default_range || cl_failed=1
         fi
       else
-        commitlint_default_range || failed=1
+        commitlint_default_range || cl_failed=1
       fi
     else
-      commitlint_default_range || failed=1
+      commitlint_default_range || cl_failed=1
     fi
   } >"$cap" 2>&1
   cat "$cap"
   echo "::endgroup::"
-  post_pr_comment_scan "commitlint" output "$(cat "$cap")"
+  SEC_CL_BODY=$(cat "$cap")
   rm -f "$cap"
+  if [ "$cl_failed" -eq 0 ]; then
+    SEC_CL_STATUS=pass
+  else
+    SEC_CL_STATUS=fail
+    failed=1
+  fi
 else
   echo "Skipping commitlint (disabled)."
-  post_pr_comment_scan "commitlint" skip "Skipping: \`commitlint\` is disabled."
+  SEC_CL_STATUS=skip
+  SEC_CL_BODY="Input \`commitlint\` is disabled."
 fi
 
 if is_true "$INPUT_RENOVATE_CHECK"; then
   if echo "$changed_files" | should_run_renovate_check; then
     cap=$(mktemp)
+    reno_failed=0
     echo "::group::renovate-config-validator"
     {
       args=()
@@ -345,22 +443,30 @@ if is_true "$INPUT_RENOVATE_CHECK"; then
       done
       if [ "${#args[@]}" -eq 0 ]; then
         echo "No renovate config file found in workspace (unexpected: path matched but file missing)."
-        failed=1
+        reno_failed=1
       else
-        renovate-config-validator "${args[@]}" || failed=1
+        renovate-config-validator "${args[@]}" || reno_failed=1
       fi
     } >"$cap" 2>&1
     cat "$cap"
     echo "::endgroup::"
-    post_pr_comment_scan "renovate-check" output "$(cat "$cap")"
+    SEC_RENOVATE_BODY=$(cat "$cap")
     rm -f "$cap"
+    if [ "$reno_failed" -eq 0 ]; then
+      SEC_RENOVATE_STATUS=pass
+    else
+      SEC_RENOVATE_STATUS=fail
+      failed=1
+    fi
   else
     echo "Skipping renovate-check: no matching files in this change set."
-    post_pr_comment_scan "renovate-check" skip "Skipping: no matching files in this change set (\`renovate.json\`, \`renovate.json5\`, or \`.github/renovate.json\`)."
+    SEC_RENOVATE_STATUS=skip
+    SEC_RENOVATE_BODY="No matching files in this change set (\`renovate.json\`, \`renovate.json5\`, or \`.github/renovate.json\`)."
   fi
 else
   echo "Skipping renovate-check (disabled)."
-  post_pr_comment_scan "renovate-check" skip "Skipping: \`renovate-check\` is disabled."
+  SEC_RENOVATE_STATUS=skip
+  SEC_RENOVATE_BODY="Input \`renovate-check\` is disabled."
 fi
 
 if is_true "$INPUT_VULN_SCAN"; then
@@ -378,7 +484,9 @@ if is_true "$INPUT_VULN_SCAN"; then
 
   if [ "$trivy_exit" -ne 0 ]; then
     failed=1
-    post_pr_comment_scan "vuln-scan" output "$(printf '%s\n\n%s' "trivy exited with code ${trivy_exit}" "$(cat "$trivy_log")")"
+    SEC_VULN_STATUS=fail
+    SEC_VULN_IS_MD="false"
+    SEC_VULN_BODY=$(printf '%s\n\n%s' "trivy exited with code ${trivy_exit}" "$(cat "$trivy_log")")
   else
     total=$(jq '[.Results[]? | .Vulnerabilities[]?] | length' "$trivy_json")
     if [ "${total:-0}" -eq 0 ]; then
@@ -388,14 +496,27 @@ if is_true "$INPUT_VULN_SCAN"; then
     fi
     if jq -e '[.Results[]? | .Vulnerabilities[]? | select(.Severity == "CRITICAL" or .Severity == "HIGH")] | length > 0' "$trivy_json" >/dev/null 2>&1; then
       failed=1
+      SEC_VULN_STATUS=fail
+    else
+      SEC_VULN_STATUS=pass
     fi
-    post_pr_comment_scan "vuln-scan" output-md "$(build_trivy_pr_comment_body "$trivy_json")"
+    SEC_VULN_IS_MD="true"
+    SEC_VULN_BODY="$(build_trivy_pr_comment_body "$trivy_json")"
   fi
   echo "::endgroup::"
   rm -f "$trivy_json" "$trivy_log"
 else
   echo "Skipping vuln-scan (disabled)."
-  post_pr_comment_scan "vuln-scan" skip "Skipping: \`vuln-scan\` is disabled."
+  SEC_VULN_STATUS=skip
+  SEC_VULN_IS_MD="false"
+  SEC_VULN_BODY="Input \`vuln-scan\` is disabled."
+fi
+
+if should_post_pr_comment; then
+  combined=$(mktemp)
+  render_combined_pr_comment >"$combined"
+  post_pr_comment_once "$(cat "$combined")"
+  rm -f "$combined"
 fi
 
 exit "$failed"
