@@ -1,6 +1,8 @@
 # Common lint
 
-A container GitHub Action that runs static checks for GitHub Actions workflows, commit messages, and Renovate configuration. Each feature can be toggled and is enabled by default.
+A container GitHub Action that runs static checks for GitHub Actions workflows, commit messages, and Renovate configuration, plus a Trivy filesystem vulnerability scan. Each feature can be toggled and is enabled by default.
+
+On `pull_request` events, you can optionally post **one new issue comment per scan** (including skipped scans) so results stay visible in the PR timeline. Set `post-pr-comments` to `false` if you only want logs in the workflow run.
 
 ## Usage in other repositories
 
@@ -18,6 +20,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   lint:
@@ -41,6 +44,8 @@ jobs:
 | `github-actions-lint` | `true` | Run `actionlint`, `ghalint run`, and `zizmor .` |
 | `commitlint` | `true` | Lint commit messages in the commit range for the current event |
 | `renovate-check` | `true` | Run `renovate-config-validator` on Renovate config files present in the repo |
+| `vuln-scan` | `true` | Run `trivy fs` (vulnerability scanner) on the repository workspace |
+| `post-pr-comments` | `true` | On `pull_request`, post a new comment per scan (see below) |
 
 Example with one feature disabled:
 
@@ -64,15 +69,29 @@ Example with one feature disabled:
 
 If you use `renovate-check`, keep a supported config file such as `renovate.json` or `renovate.json5` where you expect it.
 
+### Trivy (`vuln-scan`)
+
+- Runs `trivy fs` with the vulnerability scanner on the checked-out workspace. The job **fails** if any finding has severity **CRITICAL** or **HIGH** (other severities are reported but do not fail the job by themselves).
+- By default, `node_modules` and `.git` are skipped via Trivy flags. You can add a `.trivyignore` in the repository root for further exclusions (Trivy reads it automatically).
+- The first run may download the Trivy vulnerability DB (requires outbound network on the runner).
+
+### Pull request comments (`post-pr-comments`)
+
+- When the event is `pull_request`, `post-pr-comments` is `true`, and `GITHUB_TOKEN` can create issue comments, the action posts **a new comment for each scan** (including short “skipped” messages). Earlier comments are not edited, so the PR keeps a history of runs.
+- Tool output in comments is wrapped in Markdown with `~~~` fenced blocks and truncated if it exceeds about **500 lines** or **62,000 characters** (whichever limit applies first). The Trivy PR comment uses Markdown (summary, severity counts, and up to 20 CRITICAL/HIGH lines) without a giant raw log block.
+- If the token cannot post (for example on some forked PR workflows), the action logs a **warning** and the scan outcome is unchanged.
+- Use `permissions: pull-requests: write` (in addition to `contents: read`) so the default `GITHUB_TOKEN` can create comments. If you set `post-pr-comments: false`, you can omit `pull-requests: write` when your policies require the narrowest token.
+
 ### GitHub token
 
-Pass `GITHUB_TOKEN` (as in the examples) so tools that need API access (for example `zizmor`) can run with the job’s default permissions. Adjust `permissions` if your policies require a narrower scope.
+Pass `GITHUB_TOKEN` (as in the examples) so tools that need API access (for example `zizmor`) can run with the job’s default permissions. For PR comments, grant **`pull-requests: write`** as shown above. Adjust `permissions` if your policies require a narrower scope.
 
 ## What runs when
 
 - **GitHub Actions lint** (`actionlint`, `ghalint`, `zizmor`): runs only if the change set includes files under `.github/workflows/` (YAML) or composite action metadata under `.github/actions/**/action.yml`.
 - **Renovate check**: runs only if the change set touches `renovate.json`, `renovate.json5`, or `.github/renovate.json`.
 - **Commitlint**: runs when enabled; it uses the pull request or push range from the event (or a sensible fallback when history is shallow). Configuration is the bundled Conventional Commits preset, merged with any commitlint config in the repository when present.
+- **Trivy** (`vuln-scan`): runs when enabled; always scans the full workspace (not gated on changed paths).
 
 ## Local development of this action
 

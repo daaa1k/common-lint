@@ -33,6 +33,17 @@
       "datasourceTemplate": "github-releases",
       "packageNameTemplate": "zizmorcore/zizmor",
       "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "Trivy GitHub release tag pinned in Dockerfile",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": [
+        "ARG\\s+TRIVY_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "aquasecurity/trivy",
+      "versioningTemplate": "semver"
     }
   ],
   "packageRules": [

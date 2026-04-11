@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   ci:
@@ -39,7 +40,7 @@ jobs:
         run: npm ci --omit=dev
         working-directory: npm-deps
 
-      - name: Run commitlint and renovate-check (same entrypoint as the action)
+      - name: Run entrypoint (commitlint, renovate-check, vuln-scan, PR comments)
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
@@ -48,9 +49,15 @@ jobs:
             -e GITHUB_EVENT_NAME \
             -e GITHUB_EVENT_PATH \
             -e GITHUB_WORKSPACE=/github/workspace \
+            -e GITHUB_REPOSITORY \
+            -e GITHUB_API_URL \
+            -e GITHUB_SERVER_URL \
+            -e GITHUB_RUN_ID \
             -e INPUT_GITHUB_ACTIONS_LINT=false \
             -e INPUT_COMMITLINT=true \
             -e INPUT_RENOVATE_CHECK=true \
+            -e INPUT_VULN_SCAN=true \
+            -e INPUT_POST_PR_COMMENTS=true \
             -v "${GITHUB_WORKSPACE}:/github/workspace" \
             -v "${GITHUB_EVENT_PATH}:${GITHUB_EVENT_PATH}:ro" \
             -w /github/workspace \
