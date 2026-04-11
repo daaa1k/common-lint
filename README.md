@@ -2,7 +2,7 @@
 
 A container GitHub Action that runs static checks for GitHub Actions workflows, commit messages, and Renovate configuration, plus a Trivy filesystem vulnerability scan. Each feature can be toggled and is enabled by default.
 
-On `pull_request` events, you can optionally post **one new issue comment per scan** (including skipped scans) so results stay visible in the PR timeline. Set `post-pr-comments` to `false` if you only want logs in the workflow run.
+On `pull_request` events, you can optionally post **one new issue comment per workflow run** with a **summary table** (overall pass/fail and per-check status), plus **collapsible** sections for each tool’s output. ANSI color codes are stripped from log text so comments stay readable. Set `post-pr-comments` to `false` if you only want logs in the workflow run.
 
 ## Usage in other repositories
 
@@ -45,7 +45,7 @@ jobs:
 | `commitlint` | `true` | Lint commit messages in the commit range for the current event |
 | `renovate-check` | `true` | Run `renovate-config-validator` on Renovate config files present in the repo |
 | `vuln-scan` | `true` | Run `trivy fs` (vulnerability scanner) on the repository workspace |
-| `post-pr-comments` | `true` | On `pull_request`, post a new comment per scan (see below) |
+| `post-pr-comments` | `true` | On `pull_request`, post one combined comment per run (see below) |
 
 Example with one feature disabled:
 
@@ -77,9 +77,9 @@ If you use `renovate-check`, keep a supported config file such as `renovate.json
 
 ### Pull request comments (`post-pr-comments`)
 
-- When the event is `pull_request`, `post-pr-comments` is `true`, and `GITHUB_TOKEN` can create issue comments, the action posts **a new comment for each scan** (including short “skipped” messages). Earlier comments are not edited, so the PR keeps a history of runs.
-- Tool output in comments is wrapped in Markdown with `~~~` fenced blocks and truncated if it exceeds about **500 lines** or **62,000 characters** (whichever limit applies first). The Trivy PR comment uses Markdown (summary, severity counts, and up to 20 CRITICAL/HIGH lines) without a giant raw log block.
-- If the token cannot post (for example on some forked PR workflows), the action logs a **warning** and the scan outcome is unchanged.
+- **Required workflow permission:** the workflow file must include `pull-requests: write` (not only `contents: read`). Without it, the API returns HTTP 403 and comments are skipped; the log shows a warning explaining this.
+- When the event is `pull_request`, `post-pr-comments` is `true`, and `GITHUB_TOKEN` can create issue comments, the action posts **one issue comment per run** containing: **overall** pass/fail, a **table** of each check (Passed / Failed / Skipped), and **`<details>`** blocks for logs. Each new run adds another comment so the PR keeps history. Plain-text tool logs use fenced \`text\` code blocks with **ANSI escapes removed**; long output is truncated (about **500 lines** or **62,000 characters** per section). The Trivy section uses Markdown (summary, severity counts, and up to 20 CRITICAL/HIGH lines) when the scan succeeds.
+- If the token cannot post (for example **pull requests from forks**, where `GITHUB_TOKEN` is read-only on the base repo), the action logs a **warning** and the scan outcome is unchanged.
 - Use `permissions: pull-requests: write` (in addition to `contents: read`) so the default `GITHUB_TOKEN` can create comments. If you set `post-pr-comments: false`, you can omit `pull-requests: write` when your policies require the narrowest token.
 
 ### GitHub token
