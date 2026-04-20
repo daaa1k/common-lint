@@ -5,6 +5,7 @@ install_before = "5d"
 actionlint = "latest"
 ghalint = "latest"
 zizmor = "latest"
+act = "latest"
 
 [tasks.renovate-check]
 run = "npx --yes --package renovate -- renovate-config-validator renovate.json"
@@ -25,6 +26,10 @@ zizmor . || failed=1
 exit $failed
 """
 description = "Run github actions lint"
+
+[tasks.act-lint]
+run = "act push -j lint -W .github/workflows/lint.yml --container-architecture linux/amd64 ${GITHUB_TOKEN:+-s GITHUB_TOKEN=$GITHUB_TOKEN}"
+description = "Run Common Lint workflow (.github/workflows/lint.yml) locally via act; requires Docker. Set GITHUB_TOKEN if common-lint needs the API."
 
 [tasks.'copier-check:common']
 run = "copier check-update -a .copier-answers.common-config.yml"
