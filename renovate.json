@@ -3,47 +3,115 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "actionlint GitHub release tag pinned in Dockerfile",
+      "description": "actionlint: ARG version + amd64 tarball SHA256",
       "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStringsStrategy": "combination",
       "matchStrings": [
-        "ARG\\s+ACTIONLINT_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)"
+        "ARG\\s+ACTIONLINT_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
+        "amd64\\)[\\s\\S]*?ACTIONLINT_SHA256=(?<currentDigest>[a-f0-9]{64})"
       ],
       "datasourceTemplate": "github-releases",
       "packageNameTemplate": "rhysd/actionlint",
-      "versioningTemplate": "semver"
+      "versioningTemplate": "semver",
+      "depNameTemplate": "actionlint-linux-amd64-tarball"
     },
     {
       "customType": "regex",
-      "description": "ghalint GitHub release tag pinned in Dockerfile",
+      "description": "actionlint: ARG version + arm64 tarball SHA256",
       "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStringsStrategy": "combination",
       "matchStrings": [
-        "ARG\\s+GHALINT_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)"
+        "ARG\\s+ACTIONLINT_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
+        "arm64\\)[\\s\\S]*?ACTIONLINT_SHA256=(?<currentDigest>[a-f0-9]{64})"
+      ],
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "rhysd/actionlint",
+      "versioningTemplate": "semver",
+      "depNameTemplate": "actionlint-linux-arm64-tarball"
+    },
+    {
+      "customType": "regex",
+      "description": "ghalint: ARG version + amd64 tarball SHA256",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStringsStrategy": "combination",
+      "matchStrings": [
+        "ARG\\s+GHALINT_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
+        "amd64\\)[\\s\\S]*?GHALINT_SHA256=(?<currentDigest>[a-f0-9]{64})"
       ],
       "datasourceTemplate": "github-releases",
       "packageNameTemplate": "suzuki-shunsuke/ghalint",
-      "versioningTemplate": "semver"
+      "versioningTemplate": "semver",
+      "depNameTemplate": "ghalint-linux-amd64-tarball"
     },
     {
       "customType": "regex",
-      "description": "zizmor GitHub release tag pinned in Dockerfile",
+      "description": "ghalint: ARG version + arm64 tarball SHA256",
       "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStringsStrategy": "combination",
       "matchStrings": [
-        "ARG\\s+ZIZMOR_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)"
+        "ARG\\s+GHALINT_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
+        "arm64\\)[\\s\\S]*?GHALINT_SHA256=(?<currentDigest>[a-f0-9]{64})"
+      ],
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "suzuki-shunsuke/ghalint",
+      "versioningTemplate": "semver",
+      "depNameTemplate": "ghalint-linux-arm64-tarball"
+    },
+    {
+      "customType": "regex",
+      "description": "zizmor: ARG version + amd64 tarball SHA256 (keep in sync; see arm64 manager + packageRules group)",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStringsStrategy": "combination",
+      "matchStrings": [
+        "ARG\\s+ZIZMOR_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
+        "amd64\\)[\\s\\S]*?ZIZMOR_SHA256=(?<currentDigest>[a-f0-9]{64})"
       ],
       "datasourceTemplate": "github-releases",
       "packageNameTemplate": "zizmorcore/zizmor",
-      "versioningTemplate": "semver"
+      "versioningTemplate": "semver",
+      "depNameTemplate": "zizmor-linux-amd64-tarball"
     },
     {
       "customType": "regex",
-      "description": "Trivy GitHub release tag pinned in Dockerfile",
+      "description": "zizmor: ARG version + arm64 tarball SHA256 (grouped with amd64 so one PR updates all three fields)",
       "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStringsStrategy": "combination",
       "matchStrings": [
-        "ARG\\s+TRIVY_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)"
+        "ARG\\s+ZIZMOR_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
+        "arm64\\)[\\s\\S]*?ZIZMOR_SHA256=(?<currentDigest>[a-f0-9]{64})"
+      ],
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "zizmorcore/zizmor",
+      "versioningTemplate": "semver",
+      "depNameTemplate": "zizmor-linux-arm64-tarball"
+    },
+    {
+      "customType": "regex",
+      "description": "trivy: ARG version + amd64 tarball SHA256",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStringsStrategy": "combination",
+      "matchStrings": [
+        "ARG\\s+TRIVY_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
+        "amd64\\)[\\s\\S]*?TRIVY_SHA256=(?<currentDigest>[a-f0-9]{64})"
       ],
       "datasourceTemplate": "github-releases",
       "packageNameTemplate": "aquasecurity/trivy",
-      "versioningTemplate": "semver"
+      "versioningTemplate": "semver",
+      "depNameTemplate": "trivy-linux-amd64-tarball"
+    },
+    {
+      "customType": "regex",
+      "description": "trivy: ARG version + arm64 tarball SHA256",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStringsStrategy": "combination",
+      "matchStrings": [
+        "ARG\\s+TRIVY_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
+        "arm64\\)[\\s\\S]*?TRIVY_SHA256=(?<currentDigest>[a-f0-9]{64})"
+      ],
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "aquasecurity/trivy",
+      "versioningTemplate": "semver",
+      "depNameTemplate": "trivy-linux-arm64-tarball"
     }
   ],
   "packageRules": [
@@ -55,6 +123,38 @@
         "@commitlint/config-conventional"
       ],
       "groupName": "action commitlint"
+    },
+    {
+      "description": "One Renovate PR for actionlint: ARG + amd64 SHA + arm64 SHA (avoid version-only bump breaking docker build)",
+      "matchDepNames": [
+        "actionlint-linux-amd64-tarball",
+        "actionlint-linux-arm64-tarball"
+      ],
+      "groupName": "actionlint"
+    },
+    {
+      "description": "One Renovate PR for ghalint: ARG + amd64 SHA + arm64 SHA",
+      "matchDepNames": [
+        "ghalint-linux-amd64-tarball",
+        "ghalint-linux-arm64-tarball"
+      ],
+      "groupName": "ghalint"
+    },
+    {
+      "description": "One Renovate PR for zizmor: ARG + amd64 SHA + arm64 SHA",
+      "matchDepNames": [
+        "zizmor-linux-amd64-tarball",
+        "zizmor-linux-arm64-tarball"
+      ],
+      "groupName": "zizmor"
+    },
+    {
+      "description": "One Renovate PR for trivy: ARG + amd64 SHA + arm64 SHA",
+      "matchDepNames": [
+        "trivy-linux-amd64-tarball",
+        "trivy-linux-arm64-tarball"
+      ],
+      "groupName": "trivy"
     }
   ]
 }
