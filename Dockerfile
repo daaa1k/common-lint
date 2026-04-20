@@ -2,7 +2,7 @@
 # Base image: digest updates via Renovate Dockerfile manager (docker datasource).
 # ARG *_VERSION: updates via customManagers (regex) in renovate.json (not legacy regexManagers).
 # If your preset sets enabledManagers, include "custom.regex" (and "dockerfile") there.
-FROM node:24-bookworm@sha256:bb20cf73b3ad7212834ec48e2174cdcb5775f6550510a5336b842ae32741ce6c
+FROM node:24-bookworm@sha256:33cf7f057918860b043c307751ef621d74ac96f875b79b6724dcebf2dfd0db6d
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates curl git jq \
