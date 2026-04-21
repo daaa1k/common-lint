@@ -10,7 +10,7 @@
         "ARG\\s+ACTIONLINT_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
         "amd64\\)[\\s\\S]*?ACTIONLINT_SHA256=(?<currentDigest>[a-f0-9]{64})"
       ],
-      "datasourceTemplate": "github-releases",
+      "datasourceTemplate": "github-release-attachments",
       "packageNameTemplate": "rhysd/actionlint",
       "versioningTemplate": "semver",
       "depNameTemplate": "actionlint-linux-amd64-tarball"
@@ -24,7 +24,7 @@
         "ARG\\s+ACTIONLINT_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
         "arm64\\)[\\s\\S]*?ACTIONLINT_SHA256=(?<currentDigest>[a-f0-9]{64})"
       ],
-      "datasourceTemplate": "github-releases",
+      "datasourceTemplate": "github-release-attachments",
       "packageNameTemplate": "rhysd/actionlint",
       "versioningTemplate": "semver",
       "depNameTemplate": "actionlint-linux-arm64-tarball"
@@ -38,7 +38,7 @@
         "ARG\\s+GHALINT_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
         "amd64\\)[\\s\\S]*?GHALINT_SHA256=(?<currentDigest>[a-f0-9]{64})"
       ],
-      "datasourceTemplate": "github-releases",
+      "datasourceTemplate": "github-release-attachments",
       "packageNameTemplate": "suzuki-shunsuke/ghalint",
       "versioningTemplate": "semver",
       "depNameTemplate": "ghalint-linux-amd64-tarball"
@@ -52,7 +52,7 @@
         "ARG\\s+GHALINT_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
         "arm64\\)[\\s\\S]*?GHALINT_SHA256=(?<currentDigest>[a-f0-9]{64})"
       ],
-      "datasourceTemplate": "github-releases",
+      "datasourceTemplate": "github-release-attachments",
       "packageNameTemplate": "suzuki-shunsuke/ghalint",
       "versioningTemplate": "semver",
       "depNameTemplate": "ghalint-linux-arm64-tarball"
@@ -66,7 +66,7 @@
         "ARG\\s+ZIZMOR_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
         "amd64\\)[\\s\\S]*?ZIZMOR_SHA256=(?<currentDigest>[a-f0-9]{64})"
       ],
-      "datasourceTemplate": "github-releases",
+      "datasourceTemplate": "github-release-attachments",
       "packageNameTemplate": "zizmorcore/zizmor",
       "versioningTemplate": "semver",
       "depNameTemplate": "zizmor-linux-amd64-tarball"
@@ -80,7 +80,7 @@
         "ARG\\s+ZIZMOR_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
         "arm64\\)[\\s\\S]*?ZIZMOR_SHA256=(?<currentDigest>[a-f0-9]{64})"
       ],
-      "datasourceTemplate": "github-releases",
+      "datasourceTemplate": "github-release-attachments",
       "packageNameTemplate": "zizmorcore/zizmor",
       "versioningTemplate": "semver",
       "depNameTemplate": "zizmor-linux-arm64-tarball"
@@ -94,7 +94,7 @@
         "ARG\\s+TRIVY_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
         "amd64\\)[\\s\\S]*?TRIVY_SHA256=(?<currentDigest>[a-f0-9]{64})"
       ],
-      "datasourceTemplate": "github-releases",
+      "datasourceTemplate": "github-release-attachments",
       "packageNameTemplate": "aquasecurity/trivy",
       "versioningTemplate": "semver",
       "depNameTemplate": "trivy-linux-amd64-tarball"
@@ -108,7 +108,7 @@
         "ARG\\s+TRIVY_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
         "arm64\\)[\\s\\S]*?TRIVY_SHA256=(?<currentDigest>[a-f0-9]{64})"
       ],
-      "datasourceTemplate": "github-releases",
+      "datasourceTemplate": "github-release-attachments",
       "packageNameTemplate": "aquasecurity/trivy",
       "versioningTemplate": "semver",
       "depNameTemplate": "trivy-linux-arm64-tarball"
