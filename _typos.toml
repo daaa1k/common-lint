@@ -1,0 +1,3 @@
+[files]
+# Vendored npm tree is not part of this repo's sources; local `npm ci` would otherwise be scanned.
+extend-exclude = ["npm-deps/node_modules/**"]
