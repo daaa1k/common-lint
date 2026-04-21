@@ -1,5 +1,5 @@
 name: Common lint
-description: Static analysis for GitHub Actions workflows, commit messages, Renovate config, and Trivy filesystem vulnerability scanning.
+description: Static analysis for GitHub Actions workflows, commit messages, Renovate config, source typos, and Trivy filesystem vulnerability scanning.
 
 branding:
   icon: check-circle
@@ -16,6 +16,10 @@ inputs:
     default: "true"
   renovate-check:
     description: Run renovate-config-validator on renovate config files.
+    required: false
+    default: "true"
+  typos:
+    description: Run typos (crate-ci/typos) spell checker on the repository.
     required: false
     default: "true"
   vuln-scan:

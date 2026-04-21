@@ -15,6 +15,7 @@ ARG ACTIONLINT_VERSION=v1.7.12
 ARG GHALINT_VERSION=v1.5.5
 ARG ZIZMOR_VERSION=v1.24.1
 ARG TRIVY_VERSION=v0.69.3
+ARG TYPOS_VERSION=v1.45.1
 
 RUN set -eux; \
   case "$TARGETARCH" in \
@@ -25,6 +26,8 @@ RUN set -eux; \
       ZIZMOR_SHA256=a8000f3c683319a523d3b20df0e75457ba591f049cfcbfa98966631b56733c03; \
       ZIZMOR_ASSET=zizmor-x86_64-unknown-linux-gnu.tar.gz; \
       TRIVY_SHA256=1816b632dfe529869c740c0913e36bd1629cb7688bd5634f4a858c1d57c88b75; \
+      TYPOS_SHA256=33447531a0eff29796d6fb9b555b4628723db72c6bad129e168d97ac86ceb0f1; \
+      TYPOS_ASSET=typos-${TYPOS_VERSION}-x86_64-unknown-linux-musl.tar.gz; \
       ;; \
     arm64) \
       AL_ARCH=arm64; \
@@ -33,6 +36,8 @@ RUN set -eux; \
       ZIZMOR_SHA256=d66e37ef8a375fb07939c630ebf9709a6e0f20242bdc3faf672a7ed97e0b768d; \
       ZIZMOR_ASSET=zizmor-aarch64-unknown-linux-gnu.tar.gz; \
       TRIVY_SHA256=7e3924a974e912e57b4a99f65ece7931f8079584dae12eb7845024f97087bdfd; \
+      TYPOS_SHA256=0d3688c607a49ffb6dedaca6de44e4217abeaa5b93228d673dc5caf76f60489f; \
+      TYPOS_ASSET=typos-${TYPOS_VERSION}-aarch64-unknown-linux-musl.tar.gz; \
       ;; \
     *) echo "unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
   esac; \
@@ -58,7 +63,11 @@ RUN set -eux; \
   curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/${TRIVY_VERSION}/${TRIVY_ASSET}" -o /tmp/trivy.tgz; \
   echo "${TRIVY_SHA256}  /tmp/trivy.tgz" | sha256sum -c -; \
   tar -xzf /tmp/trivy.tgz -C /usr/local/bin trivy; \
-  rm -f /tmp/trivy.tgz
+  rm -f /tmp/trivy.tgz; \
+  curl -fsSL "https://github.com/crate-ci/typos/releases/download/${TYPOS_VERSION}/${TYPOS_ASSET}" -o /tmp/typos.tgz; \
+  echo "${TYPOS_SHA256}  /tmp/typos.tgz" | sha256sum -c -; \
+  tar -xzf /tmp/typos.tgz -C /usr/local/bin ./typos; \
+  rm -f /tmp/typos.tgz
 
 COPY npm-deps/package.json npm-deps/package-lock.json /opt/npm-deps/
 WORKDIR /opt/npm-deps

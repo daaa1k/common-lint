@@ -26,6 +26,7 @@ git config --global --add safe.directory "${GITHUB_WORKSPACE}"
 INPUT_GITHUB_ACTIONS_LINT="${INPUT_GITHUB_ACTIONS_LINT:-true}"
 INPUT_COMMITLINT="${INPUT_COMMITLINT:-true}"
 INPUT_RENOVATE_CHECK="${INPUT_RENOVATE_CHECK:-true}"
+INPUT_TYPOS="${INPUT_TYPOS:-true}"
 INPUT_VULN_SCAN="${INPUT_VULN_SCAN:-true}"
 INPUT_POST_PR_COMMENTS="${INPUT_POST_PR_COMMENTS:-true}"
 
@@ -38,6 +39,8 @@ SEC_CL_STATUS=skip
 SEC_CL_BODY=""
 SEC_RENOVATE_STATUS=skip
 SEC_RENOVATE_BODY=""
+SEC_TYPOS_STATUS=skip
+SEC_TYPOS_BODY=""
 SEC_VULN_STATUS=skip
 SEC_VULN_BODY=""
 # vuln body is markdown (true) or plain log (false)
@@ -302,16 +305,18 @@ render_combined_pr_comment() {
   printf '| GitHub Actions lint (actionlint, ghalint, zizmor) | %s |\n' "$(table_result_cell "$SEC_GA_STATUS")"
   printf '| commitlint | %s |\n' "$(table_result_cell "$SEC_CL_STATUS")"
   printf '| renovate-check | %s |\n' "$(table_result_cell "$SEC_RENOVATE_STATUS")"
+  printf '| typos | %s |\n' "$(table_result_cell "$SEC_TYPOS_STATUS")"
   printf '| vuln-scan (Trivy) | %s |\n' "$(table_result_cell "$SEC_VULN_STATUS")"
   printf '\n---\n\n'
 
   append_detail_block "1. GitHub Actions lint" "$SEC_GA_STATUS" "$SEC_GA_BODY" false
   append_detail_block "2. commitlint" "$SEC_CL_STATUS" "$SEC_CL_BODY" false
   append_detail_block "3. renovate-check" "$SEC_RENOVATE_STATUS" "$SEC_RENOVATE_BODY" false
+  append_detail_block "4. typos" "$SEC_TYPOS_STATUS" "$SEC_TYPOS_BODY" false
   if is_true "$SEC_VULN_IS_MD"; then
-    append_detail_block "4. vuln-scan (Trivy)" "$SEC_VULN_STATUS" "$SEC_VULN_BODY" "true"
+    append_detail_block "5. vuln-scan (Trivy)" "$SEC_VULN_STATUS" "$SEC_VULN_BODY" "true"
   else
-    append_detail_block "4. vuln-scan (Trivy)" "$SEC_VULN_STATUS" "$SEC_VULN_BODY" "false"
+    append_detail_block "5. vuln-scan (Trivy)" "$SEC_VULN_STATUS" "$SEC_VULN_BODY" "false"
   fi
 }
 
@@ -467,6 +472,29 @@ else
   echo "Skipping renovate-check (disabled)."
   SEC_RENOVATE_STATUS=skip
   SEC_RENOVATE_BODY="Input \`renovate-check\` is disabled."
+fi
+
+if is_true "$INPUT_TYPOS"; then
+  cap=$(mktemp)
+  typos_failed=0
+  echo "::group::typos"
+  {
+    typos || typos_failed=1
+  } >"$cap" 2>&1
+  cat "$cap"
+  echo "::endgroup::"
+  SEC_TYPOS_BODY=$(cat "$cap")
+  rm -f "$cap"
+  if [ "$typos_failed" -eq 0 ]; then
+    SEC_TYPOS_STATUS=pass
+  else
+    SEC_TYPOS_STATUS=fail
+    failed=1
+  fi
+else
+  echo "Skipping typos (disabled)."
+  SEC_TYPOS_STATUS=skip
+  SEC_TYPOS_BODY="Input \`typos\` is disabled."
 fi
 
 if is_true "$INPUT_VULN_SCAN"; then

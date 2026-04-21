@@ -112,6 +112,34 @@
       "packageNameTemplate": "aquasecurity/trivy",
       "versioningTemplate": "semver",
       "depNameTemplate": "trivy-linux-arm64-tarball"
+    },
+    {
+      "customType": "regex",
+      "description": "typos: ARG version + amd64 musl tarball SHA256",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStringsStrategy": "combination",
+      "matchStrings": [
+        "ARG\\s+TYPOS_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
+        "amd64\\)[\\s\\S]*?TYPOS_SHA256=(?<currentDigest>[a-f0-9]{64})"
+      ],
+      "datasourceTemplate": "github-release-attachments",
+      "packageNameTemplate": "crate-ci/typos",
+      "versioningTemplate": "semver",
+      "depNameTemplate": "typos-linux-amd64-tarball"
+    },
+    {
+      "customType": "regex",
+      "description": "typos: ARG version + arm64 musl tarball SHA256",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStringsStrategy": "combination",
+      "matchStrings": [
+        "ARG\\s+TYPOS_VERSION=(?<currentValue>v?\\d+\\.\\d+\\.\\d+)",
+        "arm64\\)[\\s\\S]*?TYPOS_SHA256=(?<currentDigest>[a-f0-9]{64})"
+      ],
+      "datasourceTemplate": "github-release-attachments",
+      "packageNameTemplate": "crate-ci/typos",
+      "versioningTemplate": "semver",
+      "depNameTemplate": "typos-linux-arm64-tarball"
     }
   ],
   "packageRules": [
@@ -155,6 +183,14 @@
         "trivy-linux-arm64-tarball"
       ],
       "groupName": "trivy"
+    },
+    {
+      "description": "One Renovate PR for typos: ARG + amd64 SHA + arm64 SHA",
+      "matchDepNames": [
+        "typos-linux-amd64-tarball",
+        "typos-linux-arm64-tarball"
+      ],
+      "groupName": "typos"
     }
   ]
 }

@@ -12,7 +12,21 @@ permissions:
   pull-requests: write
 
 jobs:
+  typos:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: crate-ci/typos@cf5f1c29a8ac336af8568821ec41919923b05a83 # v1.45.1
+
   ci:
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -56,6 +70,7 @@ jobs:
             -e INPUT_GITHUB_ACTIONS_LINT=false \
             -e INPUT_COMMITLINT=true \
             -e INPUT_RENOVATE_CHECK=true \
+            -e INPUT_TYPOS=false \
             -e INPUT_VULN_SCAN=true \
             -e INPUT_POST_PR_COMMENTS=true \
             -v "${GITHUB_WORKSPACE}:/github/workspace" \
