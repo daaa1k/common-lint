@@ -2,7 +2,7 @@
   "name": "common-lint-action-deps",
   "private": true,
   "dependencies": {
-    "@commitlint/cli": "20.5.0",
+    "@commitlint/cli": "20.5.2",
     "@commitlint/config-conventional": "20.5.0",
     "renovate": "43.129.0"
   }
