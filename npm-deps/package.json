@@ -4,6 +4,7 @@
   "dependencies": {
     "@commitlint/cli": "20.5.0",
     "@commitlint/config-conventional": "20.5.0",
+    "lodash.mergewith": "4.6.2",
     "renovate": "43.150.0"
   }
 }
