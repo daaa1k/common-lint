@@ -33,4 +33,4 @@ inputs:
 
 runs:
   using: docker
-  image: docker://ghcr.io/daaa1k/common-lint@sha256:8eb2feff0a6574c11e09b89464b106e57c30acd7a5952e4c42af350d76e42a0a
+  image: docker://ghcr.io/daaa1k/common-lint@sha256:a7fa1e9d6b0ac1ed3c6f35a8931c7af39cbab08855c856d2f4c439b0aad794f6
