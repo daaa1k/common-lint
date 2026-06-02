@@ -2,8 +2,8 @@
   "name": "common-lint-action-deps",
   "private": true,
   "dependencies": {
-    "@commitlint/cli": "20.5.3",
-    "@commitlint/config-conventional": "20.5.3",
+    "@commitlint/cli": "21.0.2",
+    "@commitlint/config-conventional": "21.0.2",
     "lodash.mergewith": "4.6.2",
     "renovate": "43.204.1"
   },
