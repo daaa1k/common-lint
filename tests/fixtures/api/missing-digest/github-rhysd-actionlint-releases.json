@@ -1,0 +1,20 @@
+[
+  {
+    "tag_name": "v1.7.13",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-05-28T00:00:00Z",
+    "assets": [
+      {
+        "name": "actionlint_1.7.13_linux_amd64.tar.gz",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "updated_at": "2026-05-28T01:00:00Z"
+      },
+      {
+        "name": "actionlint_1.7.13_linux_arm64.tar.gz",
+        "digest": "",
+        "updated_at": "2026-05-28T01:00:00Z"
+      }
+    ]
+  }
+]

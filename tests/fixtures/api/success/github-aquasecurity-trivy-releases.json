@@ -1,0 +1,38 @@
+[
+  {
+    "tag_name": "v0.70.0",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-06-01T00:00:00Z",
+    "assets": [
+      {
+        "name": "trivy_0.70.0_Linux-64bit.tar.gz",
+        "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "updated_at": "2026-06-01T00:00:00Z"
+      },
+      {
+        "name": "trivy_0.70.0_Linux-ARM64.tar.gz",
+        "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "updated_at": "2026-06-01T00:00:00Z"
+      }
+    ]
+  },
+  {
+    "tag_name": "v0.69.3",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-05-20T00:00:00Z",
+    "assets": [
+      {
+        "name": "trivy_0.69.3_Linux-64bit.tar.gz",
+        "digest": "sha256:1816b632dfe529869c740c0913e36bd1629cb7688bd5634f4a858c1d57c88b75",
+        "updated_at": "2026-05-20T00:00:00Z"
+      },
+      {
+        "name": "trivy_0.69.3_Linux-ARM64.tar.gz",
+        "digest": "sha256:7e3924a974e912e57b4a99f65ece7931f8079584dae12eb7845024f97087bdfd",
+        "updated_at": "2026-05-20T00:00:00Z"
+      }
+    ]
+  }
+]

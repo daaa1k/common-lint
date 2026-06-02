@@ -1,0 +1,6 @@
+[tasks.update-dockerfile-deps]
+description = "Update Dockerfile-pinned tool and image digests with a minimum release age guard"
+run = "scripts/update-dockerfile-deps.sh"
+
+[tasks.update-dockerfile-deps.env]
+MINIMUM_RELEASE_AGE_DAYS = 3

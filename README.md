@@ -103,3 +103,11 @@ docker run --rm -e GITHUB_WORKSPACE=/ws -v "$PWD":/ws common-lint
 ```
 
 Set `GITHUB_EVENT_NAME`, `GITHUB_EVENT_PATH`, and related variables if you need to simulate a specific GitHub event.
+
+### Updating Dockerfile dependencies
+
+Use `mise run update-dockerfile-deps` to refresh the root `Dockerfile`'s pinned image digests and bundled GitHub Release tools. This task intentionally excludes `apt-get install` package versions and leaves `action.yml` unchanged.
+
+- The task requires a clean tracked git worktree.
+- It uses `GITHUB_TOKEN` when provided; otherwise it falls back to `gh auth token`.
+- The default eligibility window is `3` days. Override it with `MINIMUM_RELEASE_AGE_DAYS=7 mise run update-dockerfile-deps` when needed.

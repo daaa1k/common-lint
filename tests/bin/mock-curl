@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fixture_dir="${MOCK_API_DIR:?MOCK_API_DIR is required}"
+fallback_dir="${MOCK_API_FALLBACK_DIR:-}"
+url="${@: -1}"
+
+read_fixture() {
+  local relative_path="$1"
+  if [ -f "${fixture_dir}/${relative_path}" ]; then
+    cat "${fixture_dir}/${relative_path}"
+    return
+  fi
+
+  if [ -n "${fallback_dir}" ] && [ -f "${fallback_dir}/${relative_path}" ]; then
+    cat "${fallback_dir}/${relative_path}"
+    return
+  fi
+
+  printf 'mock-curl: fixture not found for %s\n' "${relative_path}" >&2
+  exit 1
+}
+
+case "${url}" in
+  https://api.github.com/repos/rhysd/actionlint/releases?per_page=100)
+    read_fixture github-rhysd-actionlint-releases.json
+    ;;
+  https://api.github.com/repos/suzuki-shunsuke/ghalint/releases?per_page=100)
+    read_fixture github-suzuki-shunsuke-ghalint-releases.json
+    ;;
+  https://api.github.com/repos/zizmorcore/zizmor/releases?per_page=100)
+    read_fixture github-zizmorcore-zizmor-releases.json
+    ;;
+  https://api.github.com/repos/aquasecurity/trivy/releases?per_page=100)
+    read_fixture github-aquasecurity-trivy-releases.json
+    ;;
+  https://api.github.com/repos/crate-ci/typos/releases?per_page=100)
+    read_fixture github-crate-ci-typos-releases.json
+    ;;
+  https://hub.docker.com/v2/namespaces/docker/repositories/dockerfile/tags/1)
+    read_fixture dockerhub-docker-dockerfile-tag.json
+    ;;
+  https://hub.docker.com/v2/namespaces/library/repositories/node/tags/24-bookworm)
+    read_fixture dockerhub-library-node-tag.json
+    ;;
+  'https://auth.docker.io/token?service=registry.docker.io&scope=repository:docker/dockerfile:pull')
+    read_fixture docker-auth-docker-dockerfile.json
+    ;;
+  'https://auth.docker.io/token?service=registry.docker.io&scope=repository:library/node:pull')
+    read_fixture docker-auth-library-node.json
+    ;;
+  https://registry-1.docker.io/v2/docker/dockerfile/manifests/1)
+    read_fixture registry-docker-dockerfile-manifest.headers
+    ;;
+  https://registry-1.docker.io/v2/library/node/manifests/24-bookworm)
+    read_fixture registry-library-node-manifest.headers
+    ;;
+  *)
+    printf 'mock-curl: unhandled url %s\n' "${url}" >&2
+    exit 1
+    ;;
+esac
