@@ -1,0 +1,20 @@
+[
+  {
+    "tag_name": "v1.5.5",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-05-20T00:00:00Z",
+    "assets": [
+      {
+        "name": "ghalint_1.5.5_linux_amd64.tar.gz",
+        "digest": "sha256:579cbf9024f86a8255ce8acdd56c7792f0f9a7e76063d64cfb7b66ff65c396e4",
+        "updated_at": "2026-05-20T00:00:00Z"
+      },
+      {
+        "name": "ghalint_1.5.5_linux_arm64.tar.gz",
+        "digest": "sha256:c3ab464130015d733bfc75a2851f4fc5b3cb966aca2ed8bc0fa2a029bc0ee6af",
+        "updated_at": "2026-05-20T00:00:00Z"
+      }
+    ]
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "tag_name": "v1.46.0",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-05-28T00:00:00Z",
+    "assets": [
+      {
+        "name": "typos-v1.46.0-x86_64-unknown-linux-musl.tar.gz",
+        "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "updated_at": "2026-05-28T01:00:00Z"
+      },
+      {
+        "name": "typos-v1.46.0-aarch64-unknown-linux-musl.tar.gz",
+        "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "updated_at": "2026-05-28T01:00:00Z"
+      }
+    ]
+  }
+]
