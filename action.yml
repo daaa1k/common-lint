@@ -23,7 +23,7 @@ inputs:
     required: false
     default: "true"
   vuln-scan:
-    description: Run Trivy filesystem vulnerability scan (CRITICAL/HIGH findings fail the job).
+    description: Run Trivy filesystem vulnerability scan (findings and tool failures warn but do not fail the job).
     required: false
     default: "true"
   post-pr-comments:
