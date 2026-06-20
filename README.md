@@ -71,14 +71,14 @@ If you use `renovate-check`, keep a supported config file such as `renovate.json
 
 ### Trivy (`vuln-scan`)
 
-- Runs `trivy fs` with the vulnerability scanner on the checked-out workspace. The job **fails** if any finding has severity **CRITICAL** or **HIGH** (other severities are reported but do not fail the job by themselves).
+- Runs `trivy fs` with the vulnerability scanner on the checked-out workspace. Findings with severity **CRITICAL** or **HIGH** are reported as **warnings**, and Trivy tool failures are also reported as **warnings**. Neither case fails the job.
 - By default, `node_modules` and `.git` are skipped via Trivy flags. You can add a `.trivyignore` in the repository root for further exclusions (Trivy reads it automatically).
 - The first run may download the Trivy vulnerability DB (requires outbound network on the runner).
 
 ### Pull request comments (`post-pr-comments`)
 
 - **Required workflow permission:** the workflow file must include `pull-requests: write` (not only `contents: read`). Without it, the API returns HTTP 403 and comments are skipped; the log shows a warning explaining this.
-- When the event is `pull_request`, `post-pr-comments` is `true`, and `GITHUB_TOKEN` can create issue comments, the action posts **one issue comment per run** containing: **overall** pass/fail, a **table** of each check (Passed / Failed / Skipped), and **`<details>`** blocks for logs. Each new run adds another comment so the PR keeps history. Plain-text tool logs use fenced \`text\` code blocks with **ANSI escapes removed**; long output is truncated (about **500 lines** or **62,000 characters** per section). The Trivy section uses Markdown (summary, severity counts, and up to 20 CRITICAL/HIGH lines) when the scan succeeds.
+- When the event is `pull_request`, `post-pr-comments` is `true`, and `GITHUB_TOKEN` can create issue comments, the action posts **one issue comment per run** containing: **overall** pass/fail, a **table** of each check (Passed / Warning / Failed / Skipped), and **`<details>`** blocks for logs. Each new run adds another comment so the PR keeps history. Plain-text tool logs use fenced \`text\` code blocks with **ANSI escapes removed**; long output is truncated (about **500 lines** or **62,000 characters** per section). The Trivy section uses Markdown (summary, severity counts, and up to 20 CRITICAL/HIGH lines) when the scan succeeds.
 - If the token cannot post (for example **pull requests from forks**, where `GITHUB_TOKEN` is read-only on the base repo), the action logs a **warning** and the scan outcome is unchanged.
 - Use `permissions: pull-requests: write` (in addition to `contents: read`) so the default `GITHUB_TOKEN` can create comments. If you set `post-pr-comments: false`, you can omit `pull-requests: write` when your policies require the narrowest token.
 

@@ -1,0 +1,15 @@
+{
+  "Results": [
+    {
+      "Target": "package-lock.json",
+      "Vulnerabilities": [
+        {
+          "PkgName": "lodash",
+          "InstalledVersion": "4.17.20",
+          "VulnerabilityID": "CVE-2024-0001",
+          "Severity": "HIGH"
+        }
+      ]
+    }
+  ]
+}

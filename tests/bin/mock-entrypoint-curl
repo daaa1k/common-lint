@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+response_file=""
+request_body=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -o)
+      response_file="$2"
+      shift 2
+      ;;
+    -d)
+      request_body="$2"
+      shift 2
+      ;;
+    -w)
+      shift 2
+      ;;
+    -X | -H)
+      shift 2
+      ;;
+    -s | -sS)
+      shift
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+
+if [ -n "${MOCK_CURL_CAPTURE_BODY:-}" ]; then
+  printf '%s' "$request_body" > "$MOCK_CURL_CAPTURE_BODY"
+fi
+
+if [ -n "$response_file" ]; then
+  printf '{"ok":true}\n' > "$response_file"
+fi
+
+printf '201'

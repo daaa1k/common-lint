@@ -32,7 +32,7 @@ INPUT_POST_PR_COMMENTS="${INPUT_POST_PR_COMMENTS:-true}"
 
 failed=0
 
-# Per-check status for PR summary: pass | fail | skip
+# Per-check status for PR summary: pass | warning | fail | skip
 SEC_GA_STATUS=skip
 SEC_GA_BODY=""
 SEC_CL_STATUS=skip
@@ -209,6 +209,7 @@ truncate_comment_body() {
 table_result_cell() {
   case "$1" in
     pass) printf '%s' '✅ **Passed**' ;;
+    warning) printf '%s' '⚠️ **Warning**' ;;
     fail) printf '%s' '❌ **Failed**' ;;
     skip) printf '%s' '⊘ **Skipped**' ;;
     *) printf '%s' '—' ;;
@@ -218,6 +219,7 @@ table_result_cell() {
 status_badge() {
   case "$1" in
     pass) printf '%s' '✅ Passed' ;;
+    warning) printf '%s' '⚠️ Warning' ;;
     fail) printf '%s' '❌ Failed' ;;
     skip) printf '%s' '⊘ Skipped' ;;
     *) printf '%s' '—' ;;
@@ -511,10 +513,15 @@ if is_true "$INPUT_VULN_SCAN"; then
   cat "$trivy_log"
 
   if [ "$trivy_exit" -ne 0 ]; then
-    failed=1
-    SEC_VULN_STATUS=fail
+    echo "::warning::Trivy exited with code ${trivy_exit}; continuing because vuln-scan is warning-only."
+    SEC_VULN_STATUS=warning
     SEC_VULN_IS_MD="false"
     SEC_VULN_BODY=$(printf '%s\n\n%s' "trivy exited with code ${trivy_exit}" "$(cat "$trivy_log")")
+  elif ! jq empty "$trivy_json" >/dev/null 2>&1; then
+    echo "::warning::Trivy produced invalid JSON output; continuing because vuln-scan is warning-only."
+    SEC_VULN_STATUS=warning
+    SEC_VULN_IS_MD="false"
+    SEC_VULN_BODY=$(printf '%s\n\n%s' "trivy produced invalid JSON output" "$(cat "$trivy_log")")
   else
     total=$(jq '[.Results[]? | .Vulnerabilities[]?] | length' "$trivy_json")
     if [ "${total:-0}" -eq 0 ]; then
@@ -522,9 +529,10 @@ if is_true "$INPUT_VULN_SCAN"; then
     else
       jq -r '.Results[]? | .Target as $t | .Vulnerabilities[]? | "\($t)\t\(.PkgName)\t\(.InstalledVersion // "")\t\(.VulnerabilityID)\t\(.Severity)"' "$trivy_json"
     fi
-    if jq -e '[.Results[]? | .Vulnerabilities[]? | select(.Severity == "CRITICAL" or .Severity == "HIGH")] | length > 0' "$trivy_json" >/dev/null 2>&1; then
-      failed=1
-      SEC_VULN_STATUS=fail
+    high_or_critical_count=$(jq '[.Results[]? | .Vulnerabilities[]? | select(.Severity == "CRITICAL" or .Severity == "HIGH")] | length' "$trivy_json")
+    if [ "${high_or_critical_count:-0}" -gt 0 ]; then
+      echo "::warning::Trivy reported ${high_or_critical_count} CRITICAL/HIGH finding(s); continuing because vuln-scan is warning-only."
+      SEC_VULN_STATUS=warning
     else
       SEC_VULN_STATUS=pass
     fi

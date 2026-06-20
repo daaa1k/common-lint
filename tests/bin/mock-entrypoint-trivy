@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+output_file=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --output)
+      output_file="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+
+case "${MOCK_TRIVY_MODE:-clean}" in
+  clean)
+    printf '{"Results":[]}\n' > "$output_file"
+    echo "mock trivy: clean scan"
+    ;;
+  high)
+    cp "${MOCK_TRIVY_JSON:?MOCK_TRIVY_JSON is required}" "$output_file"
+    echo "mock trivy: high severity findings"
+    ;;
+  invalid-json)
+    printf '{invalid-json\n' > "$output_file"
+    echo "mock trivy: invalid json output"
+    ;;
+  fail)
+    : > "$output_file"
+    echo "mock trivy: database download failed" >&2
+    exit "${MOCK_TRIVY_EXIT_CODE:-2}"
+    ;;
+  *)
+    echo "mock trivy: unsupported mode ${MOCK_TRIVY_MODE}" >&2
+    exit 1
+    ;;
+esac
