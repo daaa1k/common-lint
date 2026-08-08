@@ -5,7 +5,7 @@
     "@commitlint/cli": "21.2.1",
     "@commitlint/config-conventional": "21.2.0",
     "lodash.mergewith": "4.6.2",
-    "renovate": "43.288.0"
+    "renovate": "44.13.2"
   },
   "overrides": {
     "simple-git": "3.36.0"
