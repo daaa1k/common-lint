@@ -8,6 +8,6 @@
     "renovate": "44.164.6"
   },
   "overrides": {
-    "simple-git": "3.36.0"
+    "simple-git": "4.0.1"
   }
 }
