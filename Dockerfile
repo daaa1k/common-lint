@@ -3,7 +3,7 @@
 # ARG *_VERSION + *_SHA256: customManagers (regex) in renovate.json use datasource
 # github-release-attachments (asset SHA256), not github-releases (tag commit digest).
 # If your preset sets enabledManagers, include "custom.regex" (and "dockerfile") there.
-FROM node:26-bookworm@sha256:a546d3f8acd2af4382668a7e6acd3bc4418e6a27478373e3246f8162f5181509
+FROM node:26-bookworm@sha256:b7087bc4d973034b30854b378ba107f9fab622b47514cb7e2592e41b8bab8d49
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates curl git jq \
